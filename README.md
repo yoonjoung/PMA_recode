@@ -1,6 +1,8 @@
 # PMA_recode
 This repo has Stata do files to create *further* re-coded datasets. 
 
+Request datasets here: https://datalab.pmadata.org/user/login?destination=/download-requests/dataset 
+
 **Creating household-level, person-level, and women-level dataset using HHQFQ**         
 CreatePMA_HRPRIR.do
 
