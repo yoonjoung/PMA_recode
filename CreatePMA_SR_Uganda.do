@@ -20,16 +20,15 @@ cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
 dir 
 
 * define data list for recode 
-/*Uganda SDP requested 2/21/2020 */
 #delimit;
 global datalist " 
-	UGR2 UGR3 UGR4 UGR5 UGR6 
+	UGR2 UGR3 UGR4 UGR5 UGR6 UGP1
 	";
 	#delimit cr
 	
 #delimit;
 global datalistminusone " 
-	UGR3 UGR4 UGR5 UGR6 
+	UGR3 UGR4 UGR5 UGR6 UGP1
 	";
 	#delimit cr	
 
@@ -40,10 +39,39 @@ global date=subinstr("`c_today'", " ", "",.)
 local todaystata=clock("`today'", "DMY")	
 	
 ************************************************************************
-* B. READ in non-public data if any 
+* B. PMA 2.0 
 ************************************************************************
 
-*N/A
+*******************************************
+* B.1 gen "round" 
+*******************************************
+use "$data/rawSDP/SDP_UGP1.dta", clear	
+		capture confirm variable phase
+			if !_rc {
+			}
+			else{
+				gen phase=substr(xsurvey, -1, 1)
+			}		
+		destring(phase), replace
+		
+		capture confirm variable round
+			if !_rc {
+			}
+			else{
+				gen round=.
+					replace round=6+phase if country=="Burkina Faso"
+					replace round=6+phase if country=="Burkina"
+					replace round=7+phase if country=="DRC"
+					replace round=7+phase if country=="Kenya"
+					replace round=5+phase if country=="Nigeria"		
+					replace round=6+phase if country=="Uganda"		
+					replace round=4+phase if country=="India_Rajasthan"		
+			}
+save "$data/rawSDP/SDP_UGP1.dta", replace 
+
+*******************************************
+* B.2 READ in non-public data if any 
+*******************************************
 
 ************************************************************************
 * C. PREP for DATA PROCESSING: check any CHANGES in questionnaire
@@ -55,7 +83,7 @@ local todaystata=clock("`today'", "DMY")
 		sum round 
 		codebook managing_authority 
 	}
-	
+
 	foreach survey in $datalist{
 	use "$data/rawSDP/SDP_`survey'.dta", clear	
 		sum round 
@@ -113,7 +141,7 @@ local todaystata=clock("`today'", "DMY")
 	*First round of data 
 	local first_round 2
 	*Last round of data
-	local last_round 6
+	local last_round 7
 	*First round of PMA2 
 	local first_round_pma2 7 
 	
@@ -121,7 +149,7 @@ local todaystata=clock("`today'", "DMY")
 	local last_round_inj 4
 	*Three sets of datalist based on injectables variables
 	global datalist1 "UGR2 UGR3 UGR4"  
-	global datalist2 "UGR5 UGR6"
+	global datalist2 "UGR5 UGR6 UGP1"
 	global datalist3 ""/*NONE yet*/
 	
 	*Non-permanent modern methods (used for threshold: 

@@ -40,11 +40,11 @@ global date=subinstr("`c_today'", " ", "",.)
 local todaystata=clock("`today'", "DMY")	
 
 ************************************************************************
-* B. Phase 2 surveys 
+* B. PMA 2.0 
 ************************************************************************
 
 *******************************************
-* B. gen "round" 
+* B.1 gen "round" 
 *******************************************
 use "$data/rawSDP/SDP_KEP1.dta", clear	
 		capture confirm variable phase
@@ -67,7 +67,7 @@ use "$data/rawSDP/SDP_KEP1.dta", clear
 save "$data/rawSDP/SDP_KEP1.dta", replace 
 
 *******************************************
-* B. READ in non-public data if any 
+* B.2 READ in non-public data if any 
 *******************************************
 /*
 cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\NonPublicFiles\"

@@ -14,7 +14,8 @@ set maxvar 9000
 ************************************************************************
 * A. SETTING 
 ************************************************************************
-* run the python file with the downloaded public files 
+* run the python file with the downloaded public files - 
+* i.e., save public files with specific names used in "surveylist" below 
 
 global data "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
 cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
@@ -24,26 +25,33 @@ cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
 cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\rawHHQFQ\"
 dir 
 */
+
+* rename India P1 data to Rajasthan
+
+use "$data/rawHHQFQ/HHQFQ_INP1.dta", clear 
+save "$data/rawHHQFQ/HHQFQ_INRajasthanP1.dta", replace  
+
+
 #delimit;
 global surveylist " 
 	BFR1 BFR2 BFR3 BFR4 BFR5 BFR6 BFP1
 	CIR1 CIR2
 	CDKinshasaR1 CDKinshasaR2 CDKinshasaR3 CDKinshasaR4 CDKinshasaR5 CDKinshasaR6 CDKinshasaR7 CDKinshasaP1
 	CDKongoCentralR4 CDKongoCentralR5 CDKongoCentralR6 CDKongoCentralR7 CDKongoCentralP1
-	INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4 
+	INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4 INRajasthanP1
 	KER2 KER3 KER4 KER5	KER6 KER7 KEP1
 	NENiameyR1 NENiameyR2 NENiameyR3 NENiameyR4 NENiameyR5
 	NER2 NER4 
 	NGLagosR2 NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 
 	NGKanoR3  NGKanoR4  NGKanoR5  NGKanoP1 
-	UGR1 UGR2 UGR3 UGR4 UGR5 UGR6 
+	UGR1 UGR2 UGR3 UGR4 UGR5 UGR6 UGP1 
 	ETR2 ETR3 ETR4 ETR5	ETR6 
 	";
 	#delimit cr	
 
 #delimit;
 global surveylistgen2 " 	
-	BFP1 CDKinshasaP1 CDKongoCentralP1 KEP1 NGLagosP1 NGKanop1	
+	BFP1 CDKinshasaP1 CDKongoCentralP1 INRajasthanP1 KEP1 NGLagosP1 NGKanop1 UGP1	
 	";
 	#delimit cr	
 ************************************************************************
@@ -224,7 +232,6 @@ foreach survey  in $NEsurveylist{
 	lookfor wealth 
 }	
 
-
 *********************************************************
 * D. create HR, PR, and IR
 *********************************************************	
@@ -376,6 +383,13 @@ foreach survey  in $DRCsurveylist{
 ***** create PREP to deal with round in 2.0 surveys
 *****
 	
+/*	
+foreach survey  in $surveylistgen2{
+	use "$data/prep_`survey'.dta", clear
+		tab xsurvey country
+	}
+*/
+	
 foreach survey  in $surveylistgen2{
 	use "$data/prep_`survey'.dta", clear
 
@@ -389,13 +403,17 @@ foreach survey  in $surveylistgen2{
 			gen phase=substr(xsurvey, -1, 1)
 			destring(phase), replace
 			}		
-				
+		
+		replace country="India_Rajasthan" if country=="India" /*change India P1 country name*/
+		
 		gen round=.
 			replace round=6+phase if country=="Burkina Faso"
 			replace round=6+phase if country=="Burkina"
 			replace round=7+phase if country=="DRC"
 			replace round=7+phase if country=="Kenya"
-			replace round=5+phase if country=="Nigeria"			
+			replace round=5+phase if country=="Nigeria"		
+			replace round=6+phase if country=="Uganda"		
+			replace round=4+phase if country=="India_Rajasthan"		
 		
 		capture confirm variable wealthquintile
 		if !_rc {
@@ -528,5 +546,10 @@ foreach survey  in $surveylist{
 	use "$data/IR_`survey'.dta", clear 
 	tab xsurvey, m
 	sum FQweight 
-
 	}
+
+foreach survey  in $surveylistgen2{
+	use "$data/IR_`survey'.dta", clear 	
+	tab country round, m
+	}
+	

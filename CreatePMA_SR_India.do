@@ -23,13 +23,13 @@ dir
 /*Uganda SDP requested 2/21/2020 */
 #delimit;
 global datalist " 
-	INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4 
+	INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4 INRajasthanP1 
 	";
 	#delimit cr
 	
 #delimit;
 global datalistminusone " 
-	INRajasthanR2 INRajasthanR3 INRajasthanR4 
+	INRajasthanR2 INRajasthanR3 INRajasthanR4  INRajasthanP1
 	";
 	#delimit cr	
 
@@ -40,10 +40,49 @@ global date=subinstr("`c_today'", " ", "",.)
 local todaystata=clock("`today'", "DMY")	
 	
 ************************************************************************
-* B. READ in non-public data if any 
+* B. PMA 2.0 
 ************************************************************************
 
-*N/A
+*******************************************
+* B.0 RENAME rajasthan 
+*******************************************
+
+use "$data/rawSDP/SDP_INP1_Rajathan.dta", clear
+
+	replace country="India_Rajasthan" 
+
+save "$data/rawSDP/SDP_INRajasthanP1.dta", replace	
+
+*******************************************
+* B.1 gen "round" 
+*******************************************
+use "$data/rawSDP/SDP_INRajasthanP1.dta", clear	
+		capture confirm variable phase
+			if !_rc {
+			}
+			else{
+				gen phase=substr(xsurvey, -1, 1)
+			}		
+		destring(phase), replace
+		
+		capture confirm variable round
+			if !_rc {
+			}
+			else{
+				gen round=.
+					replace round=6+phase if country=="Burkina Faso"
+					replace round=6+phase if country=="Burkina"
+					replace round=7+phase if country=="DRC"
+					replace round=7+phase if country=="Kenya"
+					replace round=5+phase if country=="Nigeria"		
+					replace round=6+phase if country=="Uganda"		
+					replace round=4+phase if country=="India_Rajasthan"		
+			}
+save "$data/rawSDP/SDP_INRajasthanP1.dta", replace 
+
+*******************************************
+* B.2 READ in non-public data if any 
+*******************************************
 
 ************************************************************************
 * C. PREP for DATA PROCESSING: check any CHANGES in questionnaire
@@ -55,7 +94,7 @@ local todaystata=clock("`today'", "DMY")
 		sum round 
 		codebook managing_authority 
 	}
-	
+
 	foreach survey in $datalist{
 	use "$data/rawSDP/SDP_`survey'.dta", clear	
 		sum round 
@@ -83,10 +122,10 @@ local todaystata=clock("`today'", "DMY")
 		sum stock_* 
 		sum stockout_3mo_*
 
-		*rounds when JUST "pills" was asked*/ =>round 1-4
+		*rounds when JUST "pills" was asked*/ =>round 1-5
 		tab round stock_pills, m 
 	
-		*DATALIST1: rounds when JUST "injectables" was asked*/ =>round 1-4
+		*DATALIST1: rounds when JUST "injectables" was asked*/ =>round 1-5
 		tab round stock_injectables, m 
 		
 		*DATALIST2: rounds when "sayana_press vs. depo_provera" was asked*/ =>NONE
@@ -120,15 +159,15 @@ local todaystata=clock("`today'", "DMY")
 	*First round of data 
 	local first_round 1
 	*Last round of data
-	local last_round 4
+	local last_round 5
 	*First round of PMA2 
-	local first_round_pma2 6 
+	local first_round_pma2 5 
 	
 	*Last round where JUST "injectables" was asked
-	local last_round_inj 4
+	local last_round_inj 5
 	
 	*Three sets of datalist based on injectables variables
-	global datalist1 "INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4"  
+	global datalist1 "INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4  INRajasthanP1"  
 	global datalist2 ""
 	global datalist3 ""/*NONE yet*/
 	

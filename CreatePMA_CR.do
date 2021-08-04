@@ -17,15 +17,16 @@ set maxvar 9000
 
 global data "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
 cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-dir 
 
+/*
+cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\rawCEI\"
+dir 
+*/
 #delimit;
 global surveylist " 
-	BFP1 CDKinshasaP1 CDKongoCentralP1 KEP1 NGLagosP1 NGKanoP1
+	BFP1 CDKinshasaP1 CDKongoCentralP1 INRajasthanP1 KEP1 NGLagosP1 NGKanoP1 UGP1
 	";
 	#delimit cr
-
-	*FR7 
 
 * Set local/global macros for current date
 local today=c(current_date)
@@ -54,6 +55,15 @@ use "$data/rawCEI/CEI_NGP1_Kano_Lagos.dta", clear; keep if state==4; save "$data
 use "$data/rawCEI/CEI_CDP1.dta", clear; keep if province==1; save "$data/rawCEI/CEI_CDKinshasaP1.dta", replace ; 
 use "$data/rawCEI/CEI_CDP1.dta", clear; keep if province==2; save "$data/rawCEI/CEI_CDKongoCentralP1.dta", replace ; 
 #delimit cr	
+
+**************************************************
+* B.3 RENAME India Rajasthan  
+**************************************************	
+
+#delimit;
+use "$data/rawCEI/CEI_INP1_Rajasthan.dta", clear; 
+save "$data/rawCEI/CEI_INRajasthanP1.dta", replace ; 
+#delimit cr	
 		
 ************************************************************************
 * C. create RECODE SDP variables
@@ -61,12 +71,19 @@ use "$data/rawCEI/CEI_CDP1.dta", clear; keep if province==2; save "$data/rawCEI/
 	
 	foreach survey in $surveylist{
 		use "$data/rawCEI/CEI_`survey'.dta", clear
+		tab country, m
 
 	* 0. Drop obs with no ID 
 		drop if facility_ID==. /*should be none*/
 
 	* 1. KEEP only complete interviews 
 		
+		lookfor result /*India and Uganda has different var name!*/
+		capture confirm variable cei_result
+			if !_rc {
+			rename cei_result CEI_result
+			}		
+
 		keep if CEI_result==1
 
 	* 2. BASIC variables and manage missing/na recode
@@ -84,11 +101,16 @@ use "$data/rawCEI/CEI_CDP1.dta", clear; keep if province==2; save "$data/rawCEI/
 		replace phase = "1" if phase=="Phase1"
 		destring(phase), replace		
 		
+		replace country="India_Rajasthan" if country=="India" /*change India P1 country name*/
+		
 		gen round=.
 			replace round=6+phase if country=="Burkina Faso"
-			replace round=7+phase if country=="Kenya"
-			replace round=5+phase if country=="Nigeria"
+			replace round=6+phase if country=="Burkina"
 			replace round=7+phase if country=="DRC"
+			replace round=7+phase if country=="Kenya"
+			replace round=5+phase if country=="Nigeria"		
+			replace round=6+phase if country=="Uganda"		
+			replace round=4+phase if country=="India_Rajasthan"		
 			
 		gen interview_yr = substr(today, 1, 4)
 		gen interview_mo = substr(today, 6, 2)
@@ -109,6 +131,9 @@ use "$data/rawCEI/CEI_CDP1.dta", clear; keep if province==2; save "$data/rawCEI/
 		tab interview_yr xsurvey, m
 		save "$data/CR_`survey'.dta", replace
 		}
+		
+		
+END OF DATA PREP		
 	
 ************************************************************************
 * D. Non-public data for consultancy - including massive renaming variables... 
