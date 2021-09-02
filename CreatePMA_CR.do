@@ -64,8 +64,6 @@ use "$data/rawCEI/CEI_CDP1.dta", clear; keep if province==2; save "$data/rawCEI/
 use "$data/rawCEI/CEI_INP1_Rajasthan.dta", clear; 
 save "$data/rawCEI/CEI_INRajasthanP1.dta", replace ; 
 #delimit cr	
-
-okok
 		
 ************************************************************************
 * C. create RECODE CEI variables
@@ -79,7 +77,7 @@ okok
 	
 		drop if facility_ID==. /*should be none*/
 
-	* 0. OMG standardize variable names /*India and Uganda has different var name!*/
+	* 0. Argh, standardize variable names /*India and Uganda has different var name!*/
 	
 		* CEI_result
 		lookfor result 
