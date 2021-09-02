@@ -38,13 +38,13 @@ global datalist "
 	CDKinshasaR3 CDKinshasaR4 CDKinshasaR5 CDKinshasaR6 CDKinshasaR7 CDKinshasaP1
 	CDKongoCentralR4 CDKongoCentralR5 CDKongoCentralR6 CDKongoCentralR7 CDKongoCentralP1
 	ETR2 ETR3 ETR4 ETR5 ETR6
-	INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4 
+	INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4  INRajasthanP1
 	KER2 KER3 KER4 KER5 KER6 KER7 KEP1 
 	NENiameyR1 NENiameyR2 NENiameyR3 NENiameyR4 NENiameyR5
 	NER2 NER4 
 	NGLagosR2 NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 
 	NGKanoR3  NGKanoR4  NGKanoR5 NGKanoP1  
-	UGR2 UGR3 UGR4 UGR5 UGR6
+	UGR2 UGR3 UGR4 UGR5 UGR6 UGP1
 	";
 	#delimit cr
 

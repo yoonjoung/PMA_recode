@@ -524,6 +524,11 @@ foreach survey  in $surveylist{
 			replace xdefacto=1 if last_night==1
 				}
 			}	
+			
+		capture confirm variable school_cc
+		if !_rc {
+		rename school_cc school
+		}			
 	
 	keep if xdefacto==1
 	

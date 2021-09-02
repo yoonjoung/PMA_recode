@@ -64,25 +64,201 @@ use "$data/rawCEI/CEI_CDP1.dta", clear; keep if province==2; save "$data/rawCEI/
 use "$data/rawCEI/CEI_INP1_Rajasthan.dta", clear; 
 save "$data/rawCEI/CEI_INRajasthanP1.dta", replace ; 
 #delimit cr	
+
+okok
 		
 ************************************************************************
-* C. create RECODE SDP variables
+* C. create RECODE CEI variables
 ************************************************************************
 	
 	foreach survey in $surveylist{
 		use "$data/rawCEI/CEI_`survey'.dta", clear
 		tab country, m
-
+		
 	* 0. Drop obs with no ID 
+	
 		drop if facility_ID==. /*should be none*/
 
-	* 1. KEEP only complete interviews 
-		
-		lookfor result /*India and Uganda has different var name!*/
+	* 0. OMG standardize variable names /*India and Uganda has different var name!*/
+	
+		* CEI_result
+		lookfor result 
 		capture confirm variable cei_result
 			if !_rc {
 			rename cei_result CEI_result
+			}	
+		
+		* visit_reason_fp
+		lookfor reason 
+		capture confirm variable visit_reason_fp
+			if !_rc {
+			codebook visit_reason_fp
+			}
+		capture confirm variable fp_reason_yn
+			if !_rc {
+			tab country, m
+			codebook fp_reason_yn
+			rename fp_reason_yn visit_reason_fp
+			}
+	
+		* visit_fp_given
+		lookfor given 
+		capture confirm variable fp_given
+			if !_rc {
+			codebook fp_given
+			}
+		capture confirm variable whatgiven_today 
+			if !_rc {
+			tab country, m
+			codebook whatgiven_today 
+			rename whatgiven_today  fp_given
+			}	
+			
+		* hh_wealth_selfrank
+		lookfor given 
+		capture confirm variable hh_wealth_selfrank
+			if !_rc {
+			codebook hh_wealth_selfrank
+			}
+		capture confirm variable hh_location_ladder 
+			if !_rc {
+			tab country, m
+			codebook hh_location_ladder 
+			rename hh_location_ladder hh_wealth_selfrank
+			}	
+
+		* mtd_before
+		lookfor before
+		capture confirm variable mtd_before
+			if !_rc {
+			codebook mtd_before
+			}
+		capture confirm variable switch_method
+			if !_rc {
+			tab country, m
+			codebook switch_method
+			rename switch_method mtd_before
+			}	
+			
+		* fp_given_type
+		capture confirm variable fp_given_type
+			if !_rc {
+			codebook fp_given_type
+			}
+		capture confirm variable method_prescribed
+			if !_rc {
+			tab country, m
+			codebook method_prescribed
+			rename method_prescribed fp_given_type
+			}				
+			
+		* pill and injectables specific counseling 
+		capture confirm variable pill_counsel
+			if !_rc {
+			tab country, m
+			rename pill_counsel prov_pill_couns
+			}	
+		capture confirm variable inj_counsel
+			if !_rc {
+			tab country, m
+			rename inj_counsel prov_inj_couns
 			}		
+		
+		* explain variables 
+		capture confirm variable explain_method
+			if !_rc {
+			tab country, m
+			rename explain_method explain_mtd
+			}			
+		capture confirm variable explain_side_effects
+			if !_rc {
+			tab country, m
+			rename explain_side_effects explain_se
+			}		
+		capture confirm variable explain_problems
+			if !_rc {
+			tab country, m
+			rename explain_problems explain_se_todo
+			}		
+		capture confirm variable explain_follow_up
+			if !_rc {
+			tab country, m
+			rename explain_follow_up explain_fu
+			}	
+			
+		* discuss variables 
+		capture confirm variable discuss_other_fp 
+			if !_rc {
+			tab country, m
+			rename discuss_other_fp disc_other_fp
+			}			
+		capture confirm variable discuss_hiv 
+			if !_rc {
+			tab country, m
+			rename discuss_hiv disc_hiv
+			}		
+		capture confirm variable discuss_fp_prefs 
+			if !_rc {
+			tab country, m
+			rename discuss_fp_prefs disc_fp_desired  
+			}		
+		capture confirm variable discuss_switch 
+			if !_rc {
+			tab country, m
+			rename discuss_switch disc_fp_switch 
+			}					
+		capture confirm variable discuss_pro_con_delay 
+			if !_rc {
+			tab country, m
+			rename discuss_pro_con_delay disc_mtd_pro_con 
+			}	
+		
+		* Communications 
+		capture confirm variable howclear_fp_info
+			if !_rc {
+			tab country, m
+			rename howclear_fp_info fp_info_clarity
+			}	
+		capture confirm variable allow_question
+			if !_rc {
+			tab country, m
+			rename allow_question prov_alllow_que
+			}				
+		capture confirm variable understand_answer
+			if !_rc {
+			tab country, m
+			rename understand_answer understand_ans
+			}									
+
+		* experience 			
+		capture confirm variable how_staff_treat
+			if !_rc {
+			tab country, m
+			rename how_staff_treat staff_polite
+			}					
+		capture confirm variable time_wait_m
+			if !_rc {
+			tab country, m
+			rename time_wait_m hf_wait_m
+			}			
+		capture confirm variable time_wait_h
+			if !_rc {
+			tab country, m
+			rename time_wait_h hf_wait_h
+			}			
+						
+		capture confirm variable satisfied_services_today
+			if !_rc {
+			tab country, m
+			rename satisfied_services_today service_satisfied
+			}	
+		capture confirm variable return_to_facility 
+			if !_rc {
+			tab country, m
+			rename return_to_facility return_hf
+			}				
+			
+	* 1. KEEP only complete interviews 	sd
 
 		keep if CEI_result==1
 
