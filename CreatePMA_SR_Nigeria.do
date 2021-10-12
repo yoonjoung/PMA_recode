@@ -15,25 +15,31 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-global data "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-dir 
+cd "~/Dropbox/0 Data/PMA/"
+global data "~/Dropbox/0 Data/PMA/"
+global dataprelim "~/Dropbox/0 Data/PMA/PMA_prelim100/"
 
 * define data list for recode 
 
 #delimit;
 global datalist " 
-	NGLagosR2 NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1
-	NGKanoR3  NGKanoR4  NGKanoR5  NGKanoP1
+	NGLagosR2 NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 NGLagosP2
+	NGKanoR3  NGKanoR4  NGKanoR5  NGKanoP1  NGKanoP2 
 	";
 	#delimit cr
 	
 #delimit;
 global datalistminusone " 
-	NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 
-	NGKanoR3  NGKanoR4  NGKanoR5  NGKanoP1
+	NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 NGLagosP2 
+	NGKanoR3  NGKanoR4  NGKanoR5  NGKanoP1 	NGKanoP2
 	";
 	#delimit cr	
+	
+#delimit;
+global datalistphase2 " 
+	NGLagosP1 NGKanoP1 NGLagosP2 NGKanoP2 
+	";
+	#delimit cr		
 
 * Set local/global macros for current date
 local today=c(current_date)
@@ -46,60 +52,108 @@ local todaystata=clock("`today'", "DMY")
 ************************************************************************
 
 *******************************************
-* B.1 gen "round" 
+* B.1 READ in non-public data if any 
 *******************************************
-use "$data/rawSDP/SDP_NGP1.dta", clear	
-		capture confirm variable phase
-			if !_rc {
-			}
-			else{
-				gen phase=substr(xsurvey, -1, 1)
-			}		
-		destring(phase), replace
-		
-		capture confirm variable round
-			if !_rc {
-			}
-			else{
-				gen round=.
-					replace round=6+phase if country=="Burkina Faso"
-					replace round=7+phase if country=="Kenya"
-					replace round=5+phase if country=="Nigeria"
-			}
-save "$data/rawSDP/SDP_NGP1.dta", replace 
 
-*******************************************
-* B.2 READ in non-public data if any 
-*******************************************
-/*
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\NonPublicFiles\"
-dir
-
-
-use "$data/NonPublicFiles/NGP1_SDP_Clean_Data_with_checks_9Apr2020.dta", clear
-		
+use "$dataprelim/NG/NGP2_SDP_Clean_Data_with_checks_17Jun2021.dta"	, clear
+			
 	codebook facility_ID metainstanceID 
 	codebook EA level1 
 	
 	sum fp_offer provide* stock_* stockout_3mo*	
 
 	*create basic var
-	gen round=6		
+	
+	gen round=7
+	gen country="Nigeria"
+	
 	destring facility_ID, replace
 	egen EA_ID=group(EA)
+	
+	capture confirm variable phase
+		if !_rc {
+			destring phase, replace
+			tab phase
+		}
+	capture confirm variable round 
+		if !_rc {
+			tab round
+		}
 	
 	save temp.dta, replace
 	
 	use temp.dta, clear
 	keep if level1=="kano"
-	save "$data/rawSDP/SDP_NGKanoP1.dta", replace
+	gen state=4
+	save "$data/rawSDP/SDP_NGKanoP2.dta", replace
 	
 	use temp.dta, clear
 	keep if level1=="lagos"
-	save "$data/rawSDP/SDP_NGLagosP1.dta", replace	
+	gen state=2
+	save "$data/rawSDP/SDP_NGLagosP2.dta", replace	
 
 	erase temp.dta
-*/
+
+*******************************************
+* B.2 gen "round" 
+*******************************************
+foreach survey in $datalistphase2{
+use "$data/rawSDP/SDP_`survey'.dta", clear	
+
+		capture confirm variable phase
+			if !_rc {
+			}
+			else{
+				gen temp=`survey'
+				gen phase=substr(temp, 4, 1)
+				destring phase, replace 
+				drop temp
+				}
+				
+		capture confirm variable round
+			if !_rc {
+			}
+			else{
+				gen temp=`survey'
+				gen countrycode=substr(temp, 1, 2)			
+				gen round = .
+					replace round=6+phase if countrycode=="BF"
+					replace round=7+phase if countrycode=="KE"
+					replace round=5+phase if countrycode=="NG"
+				drop temp countrycode
+				}
+				
+		capture confirm variable country
+			if !_rc {
+			}
+			else{
+				gen temp=`survey'
+				gen countrycode=substr(temp, 1, 2)	
+				gen country=""
+					replace country="Burkina Faso" if countrycode=="BF"
+					replace country="Kenya" if countrycode=="KE"
+					replace country="Nigeria" if countrycode=="NG"					
+				drop temp countrycode	
+				}
+				
+		capture confirm variable managing_authority 
+			if !_rc {
+			}
+			else{
+				clonevar managing_authority =managing_authority_cal 
+				}
+
+		capture confirm variable facility_type
+			if !_rc {
+			}
+			else{
+				clonevar facility_type  =facility_type_cal  
+				}
+
+	tab round phase, m			
+				
+save "$data/rawSDP/SDP_`survey'.dta", replace 
+}
 	
 *******************************************
 ***** extract only Kano & Lagos from Nigeria + take care of odd basic variables
@@ -133,7 +187,7 @@ use "$data/rawSDP/SDP_`survey'.dta", clear
 * WHat on earth there are faciliteis that serve over 20 clusters - in Kano???? 	
 */			
 
-foreach survey in NGLagosR2 NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 NGKanoR3  NGKanoR4  NGKanoR5 NGKanoP1{
+foreach survey in $datalist{
 use "$data/rawSDP/SDP_`survey'.dta", clear	
 
 	* gen EA_ID
@@ -227,19 +281,21 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 	
 		*DATALIST1: rounds when JUST "injectables" was asked*/ => Rounds 2-3
 		tab round stock_injectables, m 	
-		
+				
 		*DATALIST2: rounds when JUST "sayana_press vs. depo_provera" was asked*/ => 6
 		tab round stock_sayana_press, m				
-		
+		tab round stock_depo_provera, m 
+				
 		*DATALIST2a: 
 		*	in fact, rounds 4 & 5 have BOTH "injectables" AND "sayana_press" , BUT NOT  "depo_provera"
 		* 	Also in the two rounds, only 1-3 SDPs "provided" Sayana. Ignore this variation. 
 		* 	Treat Rounds 4-5 just like datalist1 in standardized code for injectables. 
 		*	i.e., "local last_round_inj 5", not "local last_round_inj 3"
 		
-		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => NONE
-		*tab round stock_injectable_sp, m
-
+		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => 7
+		tab round stock_injectable_sp, m
+		tab round stock_injectable_dp, m 
+		
 * CHANGES IN readiness variables?  
 
 	foreach survey  in $datalist{
@@ -265,7 +321,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 	*First round of data 
 	local first_round 2
 	*Last round of data
-	local last_round 6
+	local last_round 7
 	*First round of PMA2 
 	local first_round_pma2 6 
 	
@@ -275,6 +331,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 	global datalist1 "NGLagosR2 NGLagosR3 NGKanoR3"
 	global datalist2A "NGLagosR4 NGLagosR5 NGKanoR4  NGKanoR5"
 	global datalist2 "NGLagosP1 NGKanoP1"
+	global datalist3 "NGLagosP2 NGKanoP2"
 	
 	*Non-permanent modern methods (used for threshold: 
 	*	create injectables even if ask about depo & sayana press separately
@@ -381,7 +438,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 			
 		save "$data/SR_`survey'.dta", replace
 		}
-	/*	
+	
 	foreach survey in $datalist3{
 		use "$data/SR_`survey'.dta", clear
 
@@ -409,7 +466,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 			
 		save "$data/SR_`survey'.dta", replace
 		}
-	*/	
+	
 	foreach survey in $datalist{
 		use "$data/SR_`survey'.dta", clear
 

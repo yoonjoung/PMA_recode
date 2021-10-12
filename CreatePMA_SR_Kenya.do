@@ -15,23 +15,29 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-global data "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-dir 
+cd "~/Dropbox/0 Data/PMA/"
+global data "~/Dropbox/0 Data/PMA/"
+global dataprelim "~/Dropbox/0 Data/PMA/PMA_prelim100/"
 
 * define data list for recode 
 /*Kenya SDP requested 1/14/2020 */
 #delimit;
 global datalist " 
-	KER2 KER3 KER4 KER5	KER6 KER7 KEP1 
+	KER2 KER3 KER4 KER5	KER6 KER7 KEP1 KEP2
 	";
 	#delimit cr
 	
 #delimit;
 global datalistminusone " 
-	KER3 KER4 KER5	KER6 KER7 KEP1
+	KER3 KER4 KER5	KER6 KER7 KEP1 KEP2
 	";
 	#delimit cr	
+	
+#delimit;
+global datalistphase2 " 
+	KEP1 KEP2 
+	";
+	#delimit cr		
 
 * Set local/global macros for current date
 local today=c(current_date)
@@ -40,66 +46,100 @@ global date=subinstr("`c_today'", " ", "",.)
 local todaystata=clock("`today'", "DMY")	
 
 ************************************************************************
-* B. PMA 2.0 
+* B. Phase 2 surveys 
 ************************************************************************
 
 *******************************************
-* B.1 gen "round" 
+* B.1 READ in non-public data if any 
 *******************************************
-use "$data/rawSDP/SDP_KEP1.dta", clear	
-		capture confirm variable phase
-			if !_rc {
-			}
-			else{
-				gen phase=substr(xsurvey, -1, 1)
-			}		
-		destring(phase), replace
-		
-		capture confirm variable round
-			if !_rc {
-			}
-			else{
-				gen round=.
-					replace round=6+phase if country=="Burkina Faso"
-					replace round=7+phase if country=="Kenya"
-					replace round=5+phase if country=="Nigeria"
-			}
-save "$data/rawSDP/SDP_KEP1.dta", replace 
 
-*******************************************
-* B.2 READ in non-public data if any 
-*******************************************
-/*
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\NonPublicFiles\"
-dir
-
-*use "$data/KEP1_SDP_Clean_Data_with_checks_14Jan2020.dta", clear
-use "$data/NonPublicFiles/KEP1_SDP_Clean_Data_with_checks_7Feb2020.dta", clear
-
-	codebook facility_ID metainstanceID /*sample size tripled????*/
-	codebook EA level1 /*yes because the number of EA almost doubled*/
+use "$dataprelim/KE/KEP2_SDP_Clean_Data_with_checks_24May2021.dta"	, clear
+				
+	codebook facility_ID metainstanceID 
+	codebook EA level1 
 	
 	sum fp_offer provide* stock_* stockout_3mo*	
 
 	*create basic var
-	gen round=8		
+	
+	gen round=9
+	gen country="Kenya"
+	
 	destring facility_ID, replace
 	egen EA_ID=group(EA)
-	gen county=.
-		replace county=	1	if level1=="BUNGOMA"
-		replace county=	2	if level1=="KERICHO"
-		replace county=	3	if level1=="KIAMBU"
-		replace county=	4	if level1=="KILIFI"
-		replace county=	5	if level1=="KITUI"
-		replace county=	6	if level1=="NAIROBI"
-		replace county=	7	if level1=="NANDI"
-		replace county=	8	if level1=="NYAMIRA"
-		replace county=	9	if level1=="SIAYA"
-		replace county=	10	if level1=="KAKAMEGA"
-		replace county=	11	if level1=="WEST POKOT"
 	
-	save "$data/rawSDP/SDP_KER8.dta", replace
-*/
+	capture confirm variable phase
+		if !_rc {
+			destring phase, replace
+			tab phase
+		}
+	capture confirm variable round 
+		if !_rc {
+			tab round
+		}
+
+	save "$data/rawSDP/SDP_KEP2.dta", replace
+
+*******************************************
+* B.2 gen "round" 
+*******************************************
+foreach survey in $datalistphase2{
+use "$data/rawSDP/SDP_`survey'.dta", clear	
+
+		capture confirm variable phase
+			if !_rc {
+			}
+			else{
+				gen temp=`survey'
+				gen phase=substr(temp, 4, 1)
+				destring phase, replace 
+				drop temp
+				}
+				
+		capture confirm variable round
+			if !_rc {
+			}
+			else{
+				gen temp=`survey'
+				gen countrycode=substr(temp, 1, 2)			
+				gen round = .
+					replace round=6+phase if countrycode=="BF"
+					replace round=7+phase if countrycode=="KE"
+					replace round=5+phase if countrycode=="NG"
+				drop temp countrycode
+				}
+		
+		capture confirm variable country
+			if !_rc {
+			}
+			else{
+				gen temp=`survey'
+				gen countrycode=substr(temp, 1, 2)	
+				gen country=""
+					replace country="Burkina Faso" if countrycode=="BF"
+					replace country="Kenya" if countrycode=="KE"
+					replace country="Nigeria" if countrycode=="NG"					
+				drop temp countrycode	
+				}
+				
+		capture confirm variable managing_authority 
+			if !_rc {
+			}
+			else{
+				clonevar managing_authority =managing_authority_cal 
+				}
+
+		capture confirm variable facility_type
+			if !_rc {
+			}
+			else{
+				clonevar facility_type  =facility_type_cal  
+				}
+
+	tab round phase, m			
+				
+save "$data/rawSDP/SDP_`survey'.dta", replace 
+}
 
 ************************************************************************
 * C. PREP for DATA PROCESSING: check any CHANGES in questionnaire
@@ -140,9 +180,11 @@ use "$data/NonPublicFiles/KEP1_SDP_Clean_Data_with_checks_7Feb2020.dta", clear
 		
 		*DATALIST2: rounds when "sayana_press vs. depo_provera" was asked*/ => Rounds 7-8
 		tab round stock_sayana_press, m 
+		tab round stock_depo_provera, m 
 		
-		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => NONE
-		*tab round stock_injectable_sp, m 
+		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => Round 9 
+		tab round stock_injectable_sp, m 
+		tab round stock_injectable_dp, m 
 
 * CHANGES IN readiness variables?  
 
@@ -170,7 +212,7 @@ use "$data/NonPublicFiles/KEP1_SDP_Clean_Data_with_checks_7Feb2020.dta", clear
 	*First round of data 
 	local first_round 2
 	*Last round of data
-	local last_round 8
+	local last_round 9
 	*First round of PMA2 
 	local first_round_pma2 8
 	
@@ -179,6 +221,7 @@ use "$data/NonPublicFiles/KEP1_SDP_Clean_Data_with_checks_7Feb2020.dta", clear
 	*Three sets of datalist based on injectables variables
 	global datalist1 "KER2 KER3 KER4 KER5 KER6"
 	global datalist2 "KER7 KEP1"
+	global datalist3 "KEP2"
 	
 	*Non-permanent modern methods (used for threshold: 
 	*	create injectables even if ask about depo & sayana press separately

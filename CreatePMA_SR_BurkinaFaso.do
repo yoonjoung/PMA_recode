@@ -15,23 +15,29 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-global data "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-dir 
+cd "~/Dropbox/0 Data/PMA/"
+global data "~/Dropbox/0 Data/PMA/"
+global dataprelim "~/Dropbox/0 Data/PMA/PMA_prelim100/"
 
 * define data list for recode 
 
 #delimit;
 global datalist " 
-	BFR1 BFR2 BFR3 BFR4 BFR5 BFR6 BFP1 
+	BFR1 BFR2 BFR3 BFR4 BFR5 BFR6 BFP1 BFP2
 	";
 	#delimit cr
 	
 #delimit;
 global datalistminusone " 
-	BFR2 BFR3 BFR4 BFR5 BFR6 BFP1 
+	BFR2 BFR3 BFR4 BFR5 BFR6 BFP1 BFP2 
 	";
 	#delimit cr	
+	
+#delimit;
+global datalistphase2 " 
+	BFP1 BFP2 
+	";
+	#delimit cr		
 
 * Set local/global macros for current date
 local today=c(current_date)
@@ -44,24 +50,95 @@ local todaystata=clock("`today'", "DMY")
 ************************************************************************
 
 *******************************************
-* B. gen "round" 
+* B.1 READ in non-public data if any 
 *******************************************
-use "$data/rawSDP/SDP_BFP1.dta", clear	
+
+use "$dataprelim/BF/BFP2_SDP_Clean_Data_with_checks_14Apr2021.dta"	, clear
+			
+	codebook facility_ID metainstanceID 
+	codebook EA level1 
+	
+	sum fp_offer provide* stock_* stockout_3mo*	
+
+	*create basic var
+	
+	gen round=8
+	gen country="Burkina Faso"
+	
+	destring facility_ID, replace
+	egen EA_ID=group(EA)
+	
+	capture confirm variable phase
+		if !_rc {
+			destring phase, replace
+			tab phase
+		}
+	capture confirm variable round 
+		if !_rc {
+			tab round
+		}
+	
+	save "$data/rawSDP/SDP_BFP2.dta", replace
+
+*******************************************
+* B.2 gen "round" 
+*******************************************
+foreach survey in $datalistphase2{
+use "$data/rawSDP/SDP_`survey'.dta", clear
+
 		capture confirm variable phase
 			if !_rc {
 			}
 			else{
-				gen phase = 1
+				gen temp=`survey'
+				gen phase=substr(temp, 4, 1)
+				destring phase, replace 
+				drop temp
 				}
 				
 		capture confirm variable round
 			if !_rc {
 			}
 			else{
-				gen round = 7
+				gen temp=`survey'
+				gen countrycode=substr(temp, 1, 2)			
+				gen round = .
+					replace round=6+phase if countrycode=="BF"
+					replace round=7+phase if countrycode=="KE"
+					replace round=5+phase if countrycode=="NG"
+				drop temp countrycode
 				}
 				
-save "$data/rawSDP/SDP_BFP1.dta", replace 
+		capture confirm variable country
+			if !_rc {
+			}
+			else{
+				gen temp=`survey'
+				gen countrycode=substr(temp, 1, 2)	
+				gen country=""
+					replace country="Burkina Faso" if countrycode=="BF"
+					replace country="Kenya" if countrycode=="KE"
+					replace country="Nigeria" if countrycode=="NG"					
+				drop temp countrycode	
+				}
+				
+		capture confirm variable managing_authority 
+			if !_rc {
+			}
+			else{
+				clonevar managing_authority =managing_authority_cal 
+				}
+
+		capture confirm variable facility_type
+			if !_rc {
+			}
+			else{
+				clonevar facility_type  =facility_type_cal  
+				}
+
+	tab round phase, m		
+save "$data/rawSDP/SDP_`survey'.dta", replace 
+}
 
 ************************************************************************
 * C. PREP for DATA PROCESSING: check any CHANGES in questionnaire
@@ -100,11 +177,13 @@ save "$data/rawSDP/SDP_BFP1.dta", replace
 		*DATALIST1: rounds when JUST "injectables" was asked*/ => Rounds 1 & 2
 		tab round stock_injectables, m 
 		
-		*DATALIST2: rounds when "sayana_press vs. depo_provera" was asked*/ => Rounds 3-6
+		*DATALIST2: rounds when "sayana_press vs. depo_provera" was asked*/ => Rounds 3-7
 		tab round stock_sayana_press, m 
+		tab round stock_depo_provera, m 
 		
-		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => Rounds 7
-		*tab round stock_injectable_sp, m 
+		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => Rounds 8
+		tab round stock_injectable_sp, m 
+		tab round stock_injectable_dp, m 
 
 * CHANGES IN readiness variables?  
 
@@ -131,7 +210,7 @@ save "$data/rawSDP/SDP_BFP1.dta", replace
 	*First round of data 
 	local first_round 1
 	*Last round of data
-	local last_round 7
+	local last_round 8
 	*First round of PMA2 
 	local first_round_pma2 7 
 	
@@ -140,7 +219,7 @@ save "$data/rawSDP/SDP_BFP1.dta", replace
 	*Three sets of datalist based on injectables variables
 	global datalist1 "BFR1 BFR2 "  
 	global datalist2 "BFR3 BFR4 BFR5 BFR6 BFP1"
-	global datalist3 "BFR7"
+	global datalist3 "BFP2"
 	
 	*Non-permanent modern methods (used for threshold: 
 	*	create injectables even if ask about depo & sayana press separately
@@ -228,7 +307,7 @@ save "$data/rawSDP/SDP_BFP1.dta", replace
 			
 		save "$data/SR_`survey'.dta", replace
 		}
-	/*	
+		
 	foreach survey in $datalist3{
 		use "$data/SR_`survey'.dta", clear
 
@@ -256,7 +335,7 @@ save "$data/rawSDP/SDP_BFP1.dta", replace
 			
 		save "$data/SR_`survey'.dta", replace
 		}
-	*/
+	
 	foreach survey in $datalist{
 		use "$data/SR_`survey'.dta", clear
 

@@ -15,11 +15,11 @@ set maxvar 9000
 ************************************************************************ 
 * run the python file with the downloaded public files 
 
-global data "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
+global data "~/Dropbox/0 Data/PMA/"
+cd "~/Dropbox/0 Data/PMA/"
 
 /*
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\rawCEI\"
+cd "~/Dropbox/0 Data/PMA/rawCEI\"
 dir 
 */
 #delimit;
@@ -314,9 +314,10 @@ END OF DATA PREP
 ************************************************************************
 
 /*
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\NonPublicFiles\"
+cd "~/Dropbox/0 Data/PMA/NonPublicFiles/"
 dir
 */
+
 /***** BFP1
 use "$data/NonPublicFiles/BFP1_CQ_Clean_Data_with_checks_26May2020.dta", clear
 

@@ -2,7 +2,8 @@
 * each country specific "CreatedPMA_SR" should rund first, which takes care of country-specific variables and changes
 		/*
 		***** create RECODE file using public/raw data
-		cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
+		cd "~/Dropbox/0 Data/PMA/"
+		
 		*do createPMA_HRPRIR.do
 		do createPMA_SR_BurkinaFaso.do
 		do createPMA_SR_CotedIvoire.do
@@ -13,6 +14,7 @@
 		do createPMA_SR_Niger.do
 		do createPMA_SR_Nigeria.do
 		do createPMA_SR_Uganda.do 
+		
 		===>do createPMA_SR.do /*this is a cross-survey program*/
 		*/
 clear 
@@ -27,23 +29,23 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-global data "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
-cd "C:\Users\YoonJoung Choi\Dropbox\0 Data\PMA\"
+global data "~/Dropbox/0 Data/PMA/"
+cd "~/Dropbox/0 Data/PMA/"
 dir 
 
 #delimit;
 global datalist " 
-	BFR1 BFR2 BFR3 BFR4 BFR5 BFR6 BFP1 
+	BFR1 BFR2 BFR3 BFR4 BFR5 BFR6 BFP1 BFP2
 	CIR1 CIR2
 	CDKinshasaR3 CDKinshasaR4 CDKinshasaR5 CDKinshasaR6 CDKinshasaR7 CDKinshasaP1
 	CDKongoCentralR4 CDKongoCentralR5 CDKongoCentralR6 CDKongoCentralR7 CDKongoCentralP1
 	ETR2 ETR3 ETR4 ETR5 ETR6
 	INRajasthanR1 INRajasthanR2 INRajasthanR3 INRajasthanR4  INRajasthanP1
-	KER2 KER3 KER4 KER5 KER6 KER7 KEP1 
+	KER2 KER3 KER4 KER5 KER6 KER7 KEP1 KEP2
 	NENiameyR1 NENiameyR2 NENiameyR3 NENiameyR4 NENiameyR5
 	NER2 NER4 
-	NGLagosR2 NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 
-	NGKanoR3  NGKanoR4  NGKanoR5 NGKanoP1  
+	NGLagosR2 NGLagosR3 NGLagosR4 NGLagosR5 NGLagosP1 NGLagosP2 
+	NGKanoR3  NGKanoR4  NGKanoR5 NGKanoP1  NGKanoP2  
 	UGR2 UGR3 UGR4 UGR5 UGR6 UGP1
 	";
 	#delimit cr
@@ -107,6 +109,7 @@ foreach survey  in $datalist{
 	gen SDPall			= 1
 	gen byte SDPpub		= managing_authority==1
 
+	gen SDPhospital=0
 	gen SDPpub12=0
 	gen SDPlow=0
 	gen SDPsecondary=0
@@ -126,18 +129,21 @@ foreach survey  in $datalist{
 			replace facility_type=4 if xsurvey=="BFP1" & facility_type_old_BFP1==9 /*surgery_center */
 			replace facility_type=96 if xsurvey=="BFP1" & facility_type_old_BFP1==96 /*other*/
 
+		replace SDPhospital	=1 if country=="BF" & (facility_type<4) /*hospitals*/
 		replace SDPpub12	=1 if country=="BF" & managing_authority==1 & (facility_type>=4) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="BF" & (facility_type>=4) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="BF" & (facility_type>=4 & facility_type<=5 ) /*SECONDARY health centers */	
 		replace SDPprimary	=1 if country=="BF" & (facility_type>=6 & facility_type<=8 ) /*clinic_private, health_center_private*/	
 		replace SDPpharmacy	=1 if country=="BF" & (facility_type>=9 & facility_type<=10 ) /*pharmacy or chemist*/
 		
+		replace SDPhospital	=1 if country=="CI" & (facility_type<5) /*hospitals*/
 		replace SDPpub12	=1 if country=="CI" & managing_authority==1 & (facility_type>=5) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="CI" & (facility_type>=5) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="CI" & (facility_type>=5 & facility_type<=7 ) /*SECONDARY health centers */	
 		replace SDPprimary	=1 if country=="CI" & (facility_type>=8 & facility_type<=15 ) /*rural_dispensary and below*/
 		replace SDPpharmacy	=1 if country=="CI" & (facility_type>=16 & facility_type<=17 ) /*pharmacy or chemist*/
 
+		replace SDPhospital	=1 if country=="CD" & (facility_type<2) /*hospitals*/
 		replace SDPpub12	=1 if country=="CD" & managing_authority==1 & (facility_type>=2) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="CD" & (facility_type>=2) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="CD" & (facility_type==2 ) /*SECONDARY health centers */	
@@ -148,36 +154,42 @@ foreach survey  in $datalist{
 			replace SDPpharmacy	=1 if xsurvey=="CDKinshasaP1" & (facility_type==96) /*pharmacy or chemist*/	
 			replace SDPpharmacy	=1 if xsurvey=="CDKongoCentralP1" & (facility_type==96) /*pharmacy or chemist*/	
 	
+		replace SDPhospital	=1 if country=="ET" & (facility_type<2) /*hospitals*/
 		replace SDPpub12	=1 if country=="ET" & managing_authority==1 & (facility_type>=2) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="ET" & (facility_type>=2) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="ET" & (facility_type==2 ) /*SECONDARY health centers */	
 		replace SDPprimary	=1 if country=="ET" & (facility_type>=3 & facility_type<=4 ) /*Health post, Health clinic*/
 		replace SDPpharmacy	=1 if country=="ET" & (facility_type>=5 & facility_type<=6 ) /*pharmacy or chemist*/
 		
+		replace SDPhospital	=1 if country=="IN" & (facility_type<2) /*hospitals*/
 		replace SDPpub12	=1 if country=="IN" & managing_authority==1 & (facility_type>=2) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="IN" & (facility_type>=2) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="IN" & (facility_type>=2 & facility_type<=3 ) /*SECONDARY health centers */	
 		replace SDPprimary	=1 if country=="IN" & (facility_type>=4 & facility_type<=6 ) /*community_center_PHC, dispensary, subcenter*/
 		replace SDPpharmacy	=1 if country=="IN" & (facility_type==7 ) /*pharmacy or chemist*/
 	
+		replace SDPhospital	=1 if country=="KE" & (facility_type<2) /*hospitals*/
 		replace SDPpub12	=1 if country=="KE" & managing_authority==1 & (facility_type>=2) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="KE" & (facility_type>=2) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="KE" & (facility_type==2 ) /*SECONDARY health centers */	
 		replace SDPprimary	=1 if country=="KE" & (facility_type>=3 & facility_type<=4 ) /*health_clinic, dispensary*/
 		replace SDPpharmacy	=1 if country=="KE" & (facility_type==5 ) /*pharmacy or chemist*/
 		
+		replace SDPhospital	=1 if country=="NE" & (facility_type<4) /*hospitals*/
 		replace SDPpub12	=1 if country=="NE" & managing_authority==1 & (facility_type>=4) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="NE" & (facility_type>=4) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="NE" & (facility_type>=4 & facility_type<=6 ) /*SECONDARY health centers */	
 		replace SDPprimary	=1 if country=="NE" & (facility_type>=7 & facility_type<=11 ) /*health hut,  private_room, private_practice*/		
 		replace SDPpharmacy	=1 if country=="NE" & (facility_type>=12 & facility_type<=14 ) /*pharmacy or chemist*/		
 				
+		replace SDPhospital	=1 if country=="NG" & (facility_type<2) /*hospitals*/
 		replace SDPpub12	=1 if country=="NG" & managing_authority==1 & (facility_type>=2) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="NG" & (facility_type>=2) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="NG" & (facility_type>=2 & facility_type<=3 ) /*SECONDARY health centers */	
 		replace SDPprimary	=1 if country=="NG" & (facility_type>=4 & facility_type<=6 ) /*Health Clinic/Post*/
 		replace SDPpharmacy	=1 if country=="NG" & (facility_type>=7 & facility_type<=8 ) /*pharmacy or chemist*/
 		
+		replace SDPhospital	=1 if country=="UG" & (facility_type<3) /*hospitals*/
 		replace SDPpub12	=1 if country=="UG" & managing_authority==1 & (facility_type>=3) /*public, excludnig hospitals*/
 		replace SDPlow		=1 if country=="UG" & (facility_type>=3) /*excludnig hospitals*/
 		replace SDPsecondary=1 if country=="UG" & (facility_type==3 ) /*SECONDARY health centers */	
@@ -263,4 +275,4 @@ foreach survey  in $datalist{
 	save "$data/SR_`survey'.dta", replace
 }
 
-COMPLETED
+*COMPLETED
