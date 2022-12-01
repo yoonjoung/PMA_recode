@@ -15,9 +15,9 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-cd "~/Dropbox/0 Data/PMA/"
-global data "~/Dropbox/0 Data/PMA/"
-global dataprelim "~/Dropbox/0 Data/PMA/PMA_prelim100/"
+cd "~/Dropbox/0Data/PMA/"
+global data "~/Dropbox/0Data/PMA/"
+global dataprelim "~/Dropbox/0Data/PMA/PMA_prelim100/"
 
 * define data list for recode 
 
@@ -52,6 +52,8 @@ local todaystata=clock("`today'", "DMY")
 *******************************************
 * B.1 READ in non-public data if any 
 *******************************************
+/*
+*Do not need this as of Dec 1, 2022
 
 use "$dataprelim/BF/BFP2_SDP_Clean_Data_with_checks_14Apr2021.dta"	, clear
 			
@@ -79,13 +81,13 @@ use "$dataprelim/BF/BFP2_SDP_Clean_Data_with_checks_14Apr2021.dta"	, clear
 		}
 	
 	save "$data/rawSDP/SDP_BFP2.dta", replace
-
+*/
 *******************************************
 * B.2 gen "round" 
 *******************************************
 foreach survey in $datalistphase2{
 use "$data/rawSDP/SDP_`survey'.dta", clear
-
+	
 		capture confirm variable phase
 			if !_rc {
 			}
@@ -155,6 +157,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 	use "$data/rawSDP/SDP_`survey'.dta", clear	
 		sum round 
 		codebook facility_type
+		tab facility_type
 	}	
 	
 * CHANGES IN key variables ACROSS ROUNDS? 
@@ -177,14 +180,16 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 		*DATALIST1: rounds when JUST "injectables" was asked*/ => Rounds 1 & 2
 		tab round stock_injectables, m 
 		
-		*DATALIST2: rounds when "sayana_press vs. depo_provera" was asked*/ => Rounds 3-7
+		*DATALIST2: rounds when "sayana_press vs. depo_provera" was asked*/ => Rounds 3-8
 		tab round stock_sayana_press, m 
 		tab round stock_depo_provera, m 
 		
-		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => Rounds 8
+		/*
+		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked => NONE
 		tab round stock_injectable_sp, m 
 		tab round stock_injectable_dp, m 
-
+		*/
+		
 * CHANGES IN readiness variables?  
 
 	foreach survey  in $datalist{
@@ -218,8 +223,8 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 	local last_round_inj 2
 	*Three sets of datalist based on injectables variables
 	global datalist1 "BFR1 BFR2 "  
-	global datalist2 "BFR3 BFR4 BFR5 BFR6 BFP1"
-	global datalist3 "BFP2"
+	global datalist2 "BFR3 BFR4 BFR5 BFR6 BFP1 BFP2"
+	*global datalist3 "BFP2"
 	
 	*Non-permanent modern methods (used for threshold: 
 	*	create injectables even if ask about depo & sayana press separately
@@ -307,7 +312,8 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 			
 		save "$data/SR_`survey'.dta", replace
 		}
-		
+	
+	/*
 	foreach survey in $datalist3{
 		use "$data/SR_`survey'.dta", clear
 
@@ -335,6 +341,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 			
 		save "$data/SR_`survey'.dta", replace
 		}
+	*/
 	
 	foreach survey in $datalist{
 		use "$data/SR_`survey'.dta", clear

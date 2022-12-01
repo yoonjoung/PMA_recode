@@ -15,8 +15,8 @@ set maxvar 9000
 ************************************************************************ 
 * run the python file with the downloaded public files 
 
-global data "~/Dropbox/0 Data/PMA/"
-cd "~/Dropbox/0 Data/PMA/"
+global data "~/Dropbox/0Data/PMA/"
+cd "~/Dropbox/0Data/PMA/"
 
 /*
 cd "~/Dropbox/0 Data/PMA/rawCEI\"
@@ -25,8 +25,15 @@ dir
 #delimit;
 global surveylist " 
 	BFP1 CDKinshasaP1 CDKongoCentralP1 INRajasthanP1 KEP1 NGLagosP1 NGKanoP1 UGP1
+	BFP2 KEP2 NGLagosP2 NGKanoP2 
 	";
 	#delimit cr
+	
+#delimit;
+global followupsurveylist " 
+	BFP2 KEP2 NGLagosP2 NGKanoP2 
+	";
+	#delimit cr	
 
 * Set local/global macros for current date
 local today=c(current_date)
@@ -45,6 +52,12 @@ local todaystata=clock("`today'", "DMY")
 #delimit;
 use "$data/rawCEI/CEI_NGP1_Kano_Lagos.dta", clear; keep if state==2; save "$data/rawCEI/CEI_NGLagosP1.dta", replace ; 
 use "$data/rawCEI/CEI_NGP1_Kano_Lagos.dta", clear; keep if state==4; save "$data/rawCEI/CEI_NGKanoP1.dta", replace;
+
+use "$data/rawCEI/CEI_NGP2.dta", clear; keep if state==2; save "$data/rawCEI/CEI_NGLagosP2.dta", replace ; 
+use "$data/rawCEI/CEI_NGP2.dta", clear; keep if state==4; save "$data/rawCEI/CEI_NGKanoP2.dta", replace;
+use "$data/rawCEI/CEIFU_NGP2.dta", clear; keep if state==2; save "$data/rawCEI/CEIFU_NGLagosP2.dta", replace ; 
+use "$data/rawCEI/CEIFU_NGP2.dta", clear; keep if state==4; save "$data/rawCEI/CEIFU_NGKanoP2.dta", replace;
+
 #delimit cr	
 
 **************************************************
@@ -74,7 +87,7 @@ save "$data/rawCEI/CEI_INRajasthanP1.dta", replace ;
 		tab country, m
 		
 	* 0. Drop obs with no ID 
-	
+		destring facility_ID, replace
 		drop if facility_ID==. /*should be none*/
 
 	* 0. Argh, standardize variable names /*India and Uganda has different var name!*/
@@ -306,8 +319,79 @@ save "$data/rawCEI/CEI_INRajasthanP1.dta", replace ;
 		save "$data/CR_`survey'.dta", replace
 		}
 		
+************************************************************************
+* C. create RECODE CEI FOLLOW UP variables
+************************************************************************
+	
+	foreach survey in $followupsurveylist{
+		use "$data/rawCEI/CEIFU_`survey'.dta", clear
+		tab country, m
 		
-END OF DATA PREP		
+	* 0. Drop obs with no ID 
+		destring facility_ID, replace
+		drop if facility_ID==. /*should be none*/
+
+	* 0. Argh, standardize variable names /*India and Uganda has different var name!*/
+	
+		* CEI_result
+		lookfor result 
+		capture confirm variable cei_result
+			if !_rc {
+			rename cei_result CEI_result
+			}	
+
+	* 1. KEEP only complete interviews 	sd
+
+		keep if CEI_result==1
+
+	* 2. BASIC variables and manage missing/na recode
+		
+		gen xsurvey="`survey'"	
+		
+		capture confirm variable phase
+			if !_rc {
+			tostring(phase), replace
+			}
+			else{
+				gen phase=substr(xsurvey, -1, 1)
+			}		
+				
+		replace phase = "1" if phase=="Phase1"
+		destring(phase), replace		
+		
+		replace country="India_Rajasthan" if country=="India" /*change India P1 country name*/
+		
+		gen round=.
+			replace round=6+phase if country=="Burkina Faso"
+			replace round=6+phase if country=="Burkina"
+			replace round=7+phase if country=="DRC"
+			replace round=7+phase if country=="Kenya"
+			replace round=5+phase if country=="Nigeria"		
+			replace round=6+phase if country=="Uganda"		
+			replace round=4+phase if country=="India_Rajasthan"		
+			
+		gen interview_yr = substr(today, 1, 4)
+		gen interview_mo = substr(today, 6, 2)
+			destring(interview_yr), replace
+			destring(interview_mo), replace
+			
+		gen interview_cmc 	= 12*(interview_yr - 1900) + interview_mo		
+			
+		lab var interview_mo "interview date, month"
+		lab var interview_yr "interview date, year"
+		lab var interview_cmc "interview date, CMC"
+
+		/*
+		foreach x of varlist provided_* stock_* stockout_3mo_*{
+			replace `x'=. if `x'<0
+			}
+		*/
+		tab interview_yr xsurvey, m
+		save "$data/CRFU_`survey'.dta", replace
+		}
+				
+		
+*END OF DATA PREP		
 	
 ************************************************************************
 * D. Non-public data for consultancy - including massive renaming variables... 

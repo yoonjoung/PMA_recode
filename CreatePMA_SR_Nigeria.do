@@ -15,9 +15,9 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-cd "~/Dropbox/0 Data/PMA/"
-global data "~/Dropbox/0 Data/PMA/"
-global dataprelim "~/Dropbox/0 Data/PMA/PMA_prelim100/"
+cd "~/Dropbox/0Data/PMA/"
+global data "~/Dropbox/0Data/PMA/"
+global dataprelim "~/Dropbox/0Data/PMA/PMA_prelim100/"
 
 * define data list for recode 
 
@@ -36,11 +36,11 @@ global datalistminusone "
 	#delimit cr	
 	
 #delimit;
-global datalistphase2 " 
-	NGLagosP1 NGKanoP1 NGLagosP2 NGKanoP2 
+global datalistphase2 "
+	NGP1 NGP2
 	";
 	#delimit cr		
-
+	
 * Set local/global macros for current date
 local today=c(current_date)
 local c_today= "`today'"
@@ -54,7 +54,8 @@ local todaystata=clock("`today'", "DMY")
 *******************************************
 * B.1 READ in non-public data if any 
 *******************************************
-
+/*
+*Not needed as of Dec 1, 2022
 use "$dataprelim/NG/NGP2_SDP_Clean_Data_with_checks_17Jun2021.dta"	, clear
 			
 	codebook facility_ID metainstanceID 
@@ -93,28 +94,49 @@ use "$dataprelim/NG/NGP2_SDP_Clean_Data_with_checks_17Jun2021.dta"	, clear
 	save "$data/rawSDP/SDP_NGLagosP2.dta", replace	
 
 	erase temp.dta
-
+*/
 *******************************************
 * B.2 gen "round" 
 *******************************************
+
+use "$data/rawSDP/SDP_NGP1.dta", clear
+		capture confirm variable phase
+			if !_rc {
+			}
+			else{
+				gen phase = 1
+				}
+save "$data/rawSDP/SDP_NGP1.dta", replace
+	
+use "$data/rawSDP/SDP_NGP2.dta", clear
+		capture confirm variable phase
+			if !_rc {
+			}
+			else{
+				gen phase = 2
+				}
+save "$data/rawSDP/SDP_NGP2.dta", replace
+
 foreach survey in $datalistphase2{
 use "$data/rawSDP/SDP_`survey'.dta", clear	
-
+		
 		capture confirm variable phase
 			if !_rc {
 			}
 			else{
 				gen temp=`survey'
-				gen phase=substr(temp, 4, 1)
+				*gen temp="NGP2"
+				gen phase=substr(temp, -1, 1)
 				destring phase, replace 
 				drop temp
 				}
-				
+	
 		capture confirm variable round
 			if !_rc {
 			}
 			else{
-				gen temp=`survey'
+				*gen temp=`survey'
+				gen temp="NG"
 				gen countrycode=substr(temp, 1, 2)			
 				gen round = .
 					replace round=6+phase if countrycode=="BF"
@@ -127,7 +149,8 @@ use "$data/rawSDP/SDP_`survey'.dta", clear
 			if !_rc {
 			}
 			else{
-				gen temp=`survey'
+				*gen temp=`survey'
+				gen temp="NG"
 				gen countrycode=substr(temp, 1, 2)	
 				gen country=""
 					replace country="Burkina Faso" if countrycode=="BF"
@@ -165,11 +188,13 @@ use "$data/rawSDP/SDP_NGR3_National.dta", clear ;keep if state==2 ; save "$data/
 use "$data/rawSDP/SDP_NGR4_National.dta", clear ;keep if state==2 ;	save "$data/rawSDP/SDP_NGLagosR4.dta", replace ; 
 use "$data/rawSDP/SDP_NGR5_National.dta", clear ;keep if state==2 ;	save "$data/rawSDP/SDP_NGLagosR5.dta", replace ; 	
 use "$data/rawSDP/SDP_NGP1.dta", clear ;keep if state==2 ;	save "$data/rawSDP/SDP_NGLagosP1.dta", replace ; 	 
+use "$data/rawSDP/SDP_NGP2.dta", clear ;keep if state==2 ;	save "$data/rawSDP/SDP_NGLagosP2.dta", replace ; 	 
 	
 use "$data/rawSDP/SDP_NGR3_National.dta", clear ;keep if state==4 ;	save "$data/rawSDP/SDP_NGKanoR3.dta", replace ; 
 use "$data/rawSDP/SDP_NGR4_National.dta", clear ;keep if state==4 ;	save "$data/rawSDP/SDP_NGKanoR4.dta", replace ; 
 use "$data/rawSDP/SDP_NGR5_National.dta", clear ;keep if state==4 ;	save "$data/rawSDP/SDP_NGKanoR5.dta", replace ;
 use "$data/rawSDP/SDP_NGP1.dta", clear ;keep if state==4 ;	save "$data/rawSDP/SDP_NGKanoP1.dta", replace ; 	 
+use "$data/rawSDP/SDP_NGP2.dta", clear ;keep if state==4 ;	save "$data/rawSDP/SDP_NGKanoP2.dta", replace ; 	 
 #delimit cr	
 
 ***** NIGERIA specific to deal with "ClusterServed": START 
@@ -179,12 +204,12 @@ use "$data/rawSDP/SDP_`survey'.dta", clear
 	sum round ClusterServed*
 	}
 	
-foreach survey in NGLagosP1 NGKanoP1{
+foreach survey in NGLagosP1 NGKanoP1 NGLagosP2 NGKanoP2{
 use "$data/rawSDP/SDP_`survey'.dta", clear
 	sum round ClusterServed*
 	}	
 	
-* WHat on earth there are faciliteis that serve over 20 clusters - in Kano???? 	
+* WHat on earth there are faciliteis that serve over 20 clusters - in Kano Phase 1???? 	
 */			
 
 foreach survey in $datalist{
@@ -248,7 +273,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 		sum round 
 		codebook managing_authority 
 	}
-	
+
 	foreach survey in $datalist{
 	use "$data/rawSDP/SDP_`survey'.dta", clear	
 		sum round 
@@ -260,7 +285,6 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 		sum round 
 		lookfor sayana
 	}		
-	
 	
 * CHANGES IN key variables ACROSS ROUNDS? 
 *	This can be just name change or actual changes in questionnaire
@@ -282,7 +306,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 		*DATALIST1: rounds when JUST "injectables" was asked*/ => Rounds 2-3
 		tab round stock_injectables, m 	
 				
-		*DATALIST2: rounds when JUST "sayana_press vs. depo_provera" was asked*/ => 6
+		*DATALIST2: rounds when JUST "sayana_press vs. depo_provera" was asked*/ => 6-7
 		tab round stock_sayana_press, m				
 		tab round stock_depo_provera, m 
 				
@@ -292,9 +316,11 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 		* 	Treat Rounds 4-5 just like datalist1 in standardized code for injectables. 
 		*	i.e., "local last_round_inj 5", not "local last_round_inj 3"
 		
-		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked*/ => 7
+		/*
+		*DATALIST3: rounds when "injectable_sp vs. injectable_dp" was asked => NONE
 		tab round stock_injectable_sp, m
 		tab round stock_injectable_dp, m 
+		*/
 		
 * CHANGES IN readiness variables?  
 
@@ -330,8 +356,8 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 	*Three sets of datalist based on injectables variables
 	global datalist1 "NGLagosR2 NGLagosR3 NGKanoR3"
 	global datalist2A "NGLagosR4 NGLagosR5 NGKanoR4  NGKanoR5"
-	global datalist2 "NGLagosP1 NGKanoP1"
-	global datalist3 "NGLagosP2 NGKanoP2"
+	global datalist2 "NGLagosP1 NGKanoP1 NGLagosP2 NGKanoP2"
+	*global datalist3 "NGLagosP2 NGKanoP2"
 	
 	*Non-permanent modern methods (used for threshold: 
 	*	create injectables even if ask about depo & sayana press separately
@@ -439,6 +465,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 		save "$data/SR_`survey'.dta", replace
 		}
 	
+	/*
 	foreach survey in $datalist3{
 		use "$data/SR_`survey'.dta", clear
 
@@ -466,6 +493,7 @@ save "$data/rawSDP/SDP_`survey'.dta", replace
 			
 		save "$data/SR_`survey'.dta", replace
 		}
+	*/
 	
 	foreach survey in $datalist{
 		use "$data/SR_`survey'.dta", clear

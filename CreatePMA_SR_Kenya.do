@@ -15,9 +15,9 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-cd "~/Dropbox/0 Data/PMA/"
-global data "~/Dropbox/0 Data/PMA/"
-global dataprelim "~/Dropbox/0 Data/PMA/PMA_prelim100/"
+cd "~/Dropbox/0Data/PMA/"
+global data "~/Dropbox/0Data/PMA/"
+global dataprelim "~/Dropbox/0Data/PMA/PMA_prelim100/"
 
 * define data list for recode 
 /*Kenya SDP requested 1/14/2020 */
@@ -52,7 +52,8 @@ local todaystata=clock("`today'", "DMY")
 *******************************************
 * B.1 READ in non-public data if any 
 *******************************************
-
+/*
+*Not needed as of Dec 1, 2022
 use "$dataprelim/KE/KEP2_SDP_Clean_Data_with_checks_24May2021.dta"	, clear
 				
 	codebook facility_ID metainstanceID 
@@ -79,7 +80,7 @@ use "$dataprelim/KE/KEP2_SDP_Clean_Data_with_checks_24May2021.dta"	, clear
 		}
 
 	save "$data/rawSDP/SDP_KEP2.dta", replace
-
+*/
 *******************************************
 * B.2 gen "round" 
 *******************************************

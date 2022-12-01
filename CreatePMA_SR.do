@@ -2,7 +2,7 @@
 * each country specific "CreatedPMA_SR" should rund first, which takes care of country-specific variables and changes
 		/*
 		***** create RECODE file using public/raw data
-		cd "~/Dropbox/0 Data/PMA/"
+		cd "~/Dropbox/0Data/PMA/"
 		
 		*do createPMA_HRPRIR.do
 		do createPMA_SR_BurkinaFaso.do
@@ -29,8 +29,8 @@ set maxvar 9000
 ************************************************************************
 * run the python file with the downloaded public files 
 
-global data "~/Dropbox/0 Data/PMA/"
-cd "~/Dropbox/0 Data/PMA/"
+global data "~/Dropbox/0Data/PMA/"
+cd "~/Dropbox/0Data/PMA/"
 dir 
 
 #delimit;
